@@ -10,11 +10,11 @@ default_condition = {
   'cortarNo': '1156011700',
   'zoom': 16,
   'priceType': 'RETAIL',
-  'markerId' : None,
-  'markerType' : None,
-  'selectedComplexNo' : None,
-  'selectedComplexBuildingNo' : None,
-  'fakeComplexMarker' : None,
+  'markerId' : '',
+  'markerType' : '',
+  'selectedComplexNo' : '',
+  'selectedComplexBuildingNo' : '',
+  'fakeComplexMarker' : '',
   'realEstateType' : 'APT',
   'tradeType' : 'A1',
   'rentPriceMin': 0,
@@ -24,14 +24,14 @@ default_condition = {
   'areaMin': 66,
   'areaMax': 115,
   'oldBuildYears' : 15,
-  'recentlyBuildYears' : None,
+  'recentlyBuildYears' : '',
   'minHouseHoldCount': 198,
-  'maxHouseHoldCount' : None,
+  'maxHouseHoldCount' : '',
   'showArticle' : False,
   'sameAddressGroup' : True,
-  'minMaintenanceCost' : None,
-  'maxMaintenanceCost' : None,
-  'directions' : None,
+  'minMaintenanceCost' : '',
+  'maxMaintenanceCost' : '',
+  'directions' : '',
   'leftLon': 126.8884756,
   'rightLon': 126.9245244,
   'topLat': 37.5420249,
@@ -79,55 +79,8 @@ for sidoItem in sidoList:
           newParam['cortarNo'] = dongItem.get('cortarNo')
           newParam['leftLon'] = dongItem.get('centerLon') - lonDegree
           newParam['rightLon'] = dongItem.get('centerLon') + lonDegree
-          newParam['topLat'] = dongItem.get('centerLat') - latDegree
-          newParam['bottomLat'] = dongItem.get('centerLat') + latDegree
+          newParam['topLat'] = dongItem.get('centerLat') + latDegree
+          newParam['bottomLat'] = dongItem.get('centerLat') - latDegree
 
-          response = requests.get(dong_list_url.format(dongItem.get('cortarNo')), headers=header)
-          print(f"{dongItem.get('cortarName')} : {len(response.json())}")
+          response = requests.get(makeApiUrl(dong_list_url, newParam), headers=header)
 
-
-
-
-
-
-
-
-        #   cortarNo: 1156011700
-        # zoom: 16
-        # priceType: RETAIL
-        # markerId:
-        # markerType:
-        # selectedComplexNo:
-        # selectedComplexBuildingNo:
-        # fakeComplexMarker:
-        # realEstateType: APT
-        # tradeType: A1
-        # tag: %3
-        # A % 3
-        # A % 3
-        # A % 3
-        # A % 3
-        # A % 3
-        # A % 3
-        # A % 3
-        # A
-        # rentPriceMin: 0
-        # rentPriceMax: 900000000
-        # priceMin: 0
-        # priceMax: 120000
-        # areaMin: 66
-        # areaMax: 115
-        # oldBuildYears: 15
-        # recentlyBuildYears:
-        # minHouseHoldCount: 198
-        # maxHouseHoldCount:
-        # showArticle: false
-        # sameAddressGroup: true
-        # minMaintenanceCost:
-        # maxMaintenanceCost:
-        # directions:
-        # leftLon: 126.8884756
-        # rightLon: 126.9245244
-        # topLat: 37.5420249
-        # bottomLat: 37.5273744
-        # isPresale: false
