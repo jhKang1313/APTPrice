@@ -1,5 +1,9 @@
 import requests as requests
+from datetime import datetime as dt
+import pandas as pd
 
+
+NAME_FIELD = "cortarName"
 totalRegion = '0000000000'
 region_list_url = 'https://new.land.naver.com/api/regions/list?cortarNo={0}'
 dong_list_url = 'https://new.land.naver.com/api/complexes/single-markers/2.0'
@@ -23,7 +27,7 @@ default_condition = {
   'priceMax': 120000,
   'areaMin': 66,
   'areaMax': 115,
-  'oldBuildYears' : 15,
+  'oldBuildYears' : 30,
   'recentlyBuildYears' : '',
   'minHouseHoldCount': 198,
   'maxHouseHoldCount' : '',
@@ -45,6 +49,8 @@ def makeApiUrl(url, param):
     url += key + "=" + str(param.get(key)) + "&"
   return url[:-1]
 
+
+
 print(makeApiUrl(dong_list_url, default_condition))
 
 header = {
@@ -57,10 +63,13 @@ response = requests.get(region_list_url.format(totalRegion), headers = header)
 sidoList = response.json()['regionList']
 
 focusSidoList = {
-  '1100000000': '서울',
-  '4100000000': '경기'
+  '1100000000': '서울'
+  #,'4100000000': '경기'
 }
 
+
+
+df_result = pd.DataFrame([])
 # 시, 도
 for sidoItem in sidoList:
   if sidoItem['cortarNo'] in list(focusSidoList.keys()):
@@ -69,18 +78,48 @@ for sidoItem in sidoList:
 
     # 구
     for guItem in guList:
-      if guItem['cortarNo'] in ['1156000000']: # 영등포구
-        response = requests.get(region_list_url.format(guItem['cortarNo']), headers=header)
+      #if guItem['cortarNo'] in ['1156000000']: # 영등포구
+      response = requests.get(region_list_url.format(guItem['cortarNo']), headers=header)
 
-        dongList = response.json()['regionList']
-        # 동 탐색
-        for dongItem in dongList:
-          newParam = default_condition
-          newParam['cortarNo'] = dongItem.get('cortarNo')
-          newParam['leftLon'] = dongItem.get('centerLon') - lonDegree
-          newParam['rightLon'] = dongItem.get('centerLon') + lonDegree
-          newParam['topLat'] = dongItem.get('centerLat') + latDegree
-          newParam['bottomLat'] = dongItem.get('centerLat') - latDegree
+      dongList = response.json()['regionList']
+      # 동 탐색
+      for dongItem in dongList:
+        newParam = default_condition
+        newParam['cortarNo'] = dongItem.get('cortarNo')
+        newParam['leftLon'] = dongItem.get('centerLon') - lonDegree
+        newParam['rightLon'] = dongItem.get('centerLon') + lonDegree
+        newParam['topLat'] = dongItem.get('centerLat') + latDegree
+        newParam['bottomLat'] = dongItem.get('centerLat') - latDegree
 
-          response = requests.get(makeApiUrl(dong_list_url, newParam), headers=header)
+        response = requests.get(makeApiUrl(dong_list_url, newParam), headers=header)
 
+        aptList = response.json()
+
+        print(f"{dongItem.get('cortarName')} : {len(aptList)}")
+
+        for aptItem in aptList:
+          newRow = {
+            "시도": sidoItem[NAME_FIELD],
+            "구": guItem[NAME_FIELD],
+            "동": dongItem[NAME_FIELD],
+            "APT명" : aptItem['complexName'],
+            "준공일" : aptItem['completionYearMonth'][:4] + '-' + aptItem['completionYearMonth'][4:],
+            "세대수" : aptItem['totalHouseholdCount'],
+            "최저가" : aptItem['minDealPrice'],
+            "최대가": aptItem['maxDealPrice'],
+            "최소평당가": aptItem['minDealUnitPrice'],
+            "최대평당가": aptItem['maxDealUnitPrice'],
+            "최소면적" : aptItem['minArea'] + '㎡',
+            "최대면적" : aptItem['maxArea'] + '㎡',
+            "매물수" : aptItem['dealCount'],
+
+          }
+          df_result = pd.concat([df_result, pd.DataFrame([newRow])])
+
+
+# numberField = ['최저가', '최대가', '최소평당가', '최대평당가', '세대수']
+# for field in numberField:
+#   df_result[field] = df_result[field].apply(lambda x: "{:,}".format(x))
+
+nowDate = dt.strftime(dt.now(), '%Y%m%d_%H%M%S')
+df_result.to_excel(f"output/{nowDate}_excel_data.xlsx", index = False)
