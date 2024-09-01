@@ -7,6 +7,10 @@ NAME_FIELD = "cortarName"
 totalRegion = '0000000000'
 region_list_url = 'https://new.land.naver.com/api/regions/list?cortarNo={0}'
 dong_list_url = 'https://new.land.naver.com/api/complexes/single-markers/2.0'
+item_detail_url = 'https://new.land.naver.com/complexes/'
+
+
+
 
 latDegree = 0.0073249
 lonDegree = 0.0180244
@@ -78,7 +82,7 @@ for sidoItem in sidoList:
 
     # 구
     for guItem in guList:
-      #if guItem['cortarNo'] in ['1156000000']: # 영등포구
+
       response = requests.get(region_list_url.format(guItem['cortarNo']), headers=header)
 
       dongList = response.json()['regionList']
@@ -98,6 +102,19 @@ for sidoItem in sidoList:
         print(f"{dongItem.get('cortarName')} : {len(aptList)}")
 
         for aptItem in aptList:
+          detailParam = {
+            "ms" : f"{dongItem.get('centerLat')}, {dongItem.get('centerLon')}, 16",
+            "a" : "APT:ABYG: JGC:PRE",
+            "b" : "A1",
+            "e" : "RETAIL",
+            "g" : "130000", # 최대12업
+            "h" : "66",     # 최소면적
+            "i" : "115",    # 최대면적
+            "j" : "30",     # 연식
+            "l" : "100",    # 세대수
+            "ad" : "true"
+          }
+
           newRow = {
             "시도": sidoItem[NAME_FIELD],
             "구": guItem[NAME_FIELD],
@@ -112,7 +129,7 @@ for sidoItem in sidoList:
             "최소면적" : aptItem['minArea'] + '㎡',
             "최대면적" : aptItem['maxArea'] + '㎡',
             "매물수" : aptItem['dealCount'],
-
+            "URL" : makeApiUrl(item_detail_url + aptItem['markerId'], detailParam)
           }
           df_result = pd.concat([df_result, pd.DataFrame([newRow])])
 
@@ -120,6 +137,8 @@ for sidoItem in sidoList:
 # numberField = ['최저가', '최대가', '최소평당가', '최대평당가', '세대수']
 # for field in numberField:
 #   df_result[field] = df_result[field].apply(lambda x: "{:,}".format(x))
+
+df_result = df_result.sort_values(by=['최저가', '준공일'], ascending=[True, False])
 
 nowDate = dt.strftime(dt.now(), '%Y%m%d_%H%M%S')
 df_result.to_excel(f"output/{nowDate}_excel_data.xlsx", index = False)
