@@ -116,6 +116,7 @@ for sidoItem in sidoList:
           }
 
           newRow = {
+            "id" : aptItem['markerId'],
             "시도": sidoItem[NAME_FIELD],
             "구": guItem[NAME_FIELD],
             "동": dongItem[NAME_FIELD],
