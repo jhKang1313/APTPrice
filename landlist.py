@@ -1,6 +1,7 @@
 import requests as requests
 from datetime import datetime as dt
 import pandas as pd
+import mysql.connector
 
 
 NAME_FIELD = "cortarName"
@@ -8,9 +9,6 @@ totalRegion = '0000000000'
 region_list_url = 'https://new.land.naver.com/api/regions/list?cortarNo={0}'
 dong_list_url = 'https://new.land.naver.com/api/complexes/single-markers/2.0'
 item_detail_url = 'https://new.land.naver.com/complexes/'
-
-
-
 
 latDegree = 0.0073249
 lonDegree = 0.0180244
@@ -29,8 +27,8 @@ default_condition = {
   'rentPriceMax': 900000000,
   'priceMin': 0,
   'priceMax': 120000,
-  'areaMin': 66,
-  'areaMax': 115,
+  'areaMin': 90,
+  'areaMax': 120,
   'oldBuildYears' : 30,
   'recentlyBuildYears' : '',
   'minHouseHoldCount': 198,
@@ -72,9 +70,13 @@ focusSidoList = {
 }
 
 focusGuList = {
-#  '1156000000' : '영등포구'
+  '1156000000' : '영등포구'
 }
 
+hateList = {
+  '100495' : '벽산베스트블루밍',
+  '425' : '북가좌삼호'
+}
 
 nowDate = dt.strftime(dt.now(), '%Y%m%d_%H%M%S')
 df_result = pd.DataFrame([])
@@ -119,29 +121,78 @@ for sidoItem in sidoList:
               "ad" : "true"
             }
 
-            if len(df_result) > 0 and aptItem['markerId'] in list(df_result["id"]):
+            if len(df_result) > 0 and aptItem['markerId'] in list(df_result["apt_id"]):
               continue
 
             newRow = {
-              "now" : nowDate,
-              "id" : aptItem['markerId'],
-              "시도": sidoItem[NAME_FIELD],
-              "구": guItem[NAME_FIELD],
-              "동": dongItem[NAME_FIELD],
-              "APT명" : aptItem['complexName'],
-              "준공일" : aptItem['completionYearMonth'][:4] + '-' + aptItem['completionYearMonth'][4:],
-              "세대수" : aptItem['totalHouseholdCount'],
-              "최저가" : aptItem['minDealPrice'],
-              "최대가": aptItem['maxDealPrice'],
-              "최소평당가": aptItem['minDealUnitPrice'],
-              "최대평당가": aptItem['maxDealUnitPrice'],
-              "최소면적" : aptItem['minArea'] + '㎡',
-              "최대면적" : aptItem['maxArea'] + '㎡',
-              "매물수" : aptItem['dealCount'],
-              "URL" : makeApiUrl(item_detail_url + aptItem['markerId'], detailParam)
+              "proc_dt" : nowDate,
+              "apt_id" : aptItem['markerId'],
+              "local1_nm": sidoItem[NAME_FIELD],
+              "local2_nm": guItem[NAME_FIELD],
+              "local3_nm": dongItem[NAME_FIELD],
+              "apt_nm" : aptItem['complexName'],
+              "crt_dt" : aptItem['completionYearMonth'][:4] + '-' + aptItem['completionYearMonth'][4:],
+              "reg_cnt" : aptItem['totalHouseholdCount'],
+              "min_amt" : aptItem['minDealPrice'],
+              "max_amt": aptItem['maxDealPrice'],
+              "min_sqr_amt": aptItem['minDealUnitPrice'],
+              "max_sqr_amt": aptItem['maxDealUnitPrice'],
+              "min_space" : aptItem['minArea'],
+              "max_space" : aptItem['maxArea'],
+              "sale_cnt" : aptItem['dealCount'],
+              "url_nm" : makeApiUrl(item_detail_url + aptItem['markerId'], detailParam)
             }
 
             df_result = pd.concat([df_result, pd.DataFrame([newRow])])
 
-df_result = df_result.sort_values(by=['최저가', '준공일'], ascending=[True, False])
-df_result.to_excel(f"output/{nowDate}_excel_data.xlsx", index = False)
+df_result = df_result.sort_values(by=['min_amt', 'crt_dt'], ascending=[True, False])
+#df_result.to_excel(f"output/{nowDate}_excel_data.xlsx", index = False)
+
+
+
+conn = mysql.connector.connect(
+    host="jhkang1313.iptime.org",
+    port="13306",
+    user="root",
+    password="qwer1234!",
+    database="kang"
+)
+
+# 커서 객체 생성
+cursor = conn.cursor()
+
+# 데이터 삽입
+#
+
+def makeInsertQuery(table, colList, row):
+  insertQuery = f"insert into {table} ("
+  for col in colList:
+    insertQuery += col + ", "
+
+  insertQuery = insertQuery[: -2] + ") values ("
+  for col in colList:
+    insertQuery += "%s, "
+
+  return insertQuery[: -2] + ")"
+
+def makeRowParam(colList, row):
+  list = []
+  for col in colList:
+    list.append(row[1][col])
+  return list
+
+colList = list(df_result.columns)
+
+
+for row in df_result.iterrows():
+  cursor.execute(makeInsertQuery("apt_table", colList, row), makeRowParam(colList,row))
+
+conn.commit()
+
+# 데이터 조회
+# cursor.execute("SELECT * FROM users")
+# rows = cursor.fetchall()
+# for row in rows:
+#     print(row)
+
+conn.close()
