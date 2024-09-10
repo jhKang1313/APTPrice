@@ -70,7 +70,7 @@ focusSidoList = {
 }
 
 focusGuList = {
-  '1156000000' : '영등포구'
+  #'1156000000' : '영등포구'
 }
 
 hateList = {
@@ -161,9 +161,6 @@ conn = mysql.connector.connect(
 # 커서 객체 생성
 cursor = conn.cursor()
 
-# 데이터 삽입
-#
-
 def makeInsertQuery(table, colList, row):
   insertQuery = f"insert into {table} ("
   for col in colList:
@@ -182,7 +179,6 @@ def makeRowParam(colList, row):
   return list
 
 colList = list(df_result.columns)
-
 
 for row in df_result.iterrows():
   cursor.execute(makeInsertQuery("apt_table", colList, row), makeRowParam(colList,row))
