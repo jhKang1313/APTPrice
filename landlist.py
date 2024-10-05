@@ -1,7 +1,7 @@
 import requests as requests
 from datetime import datetime as dt
 import pandas as pd
-import mysql.connector
+from dbConn import DBConnector
 
 
 NAME_FIELD = "cortarName"
@@ -9,6 +9,7 @@ totalRegion = '0000000000'
 region_list_url = 'https://new.land.naver.com/api/regions/list?cortarNo={0}'
 dong_list_url = 'https://new.land.naver.com/api/complexes/single-markers/2.0'
 item_detail_url = 'https://new.land.naver.com/complexes/'
+
 
 latDegree = 0.0073249
 lonDegree = 0.0180244
@@ -27,7 +28,7 @@ default_condition = {
   'rentPriceMax': 900000000,
   'priceMin': 0,
   'priceMax': 120000,
-  'areaMin': 90,
+  'areaMin': 80,
   'areaMax': 120,
   'oldBuildYears' : 30,
   'recentlyBuildYears' : '',
@@ -146,49 +147,14 @@ for sidoItem in sidoList:
             df_result = pd.concat([df_result, pd.DataFrame([newRow])])
 
 df_result = df_result.sort_values(by=['min_amt', 'crt_dt'], ascending=[True, False])
-#df_result.to_excel(f"output/{nowDate}_excel_data.xlsx", index = False)
-
-
-
-conn = mysql.connector.connect(
-    host="jhkang1313.iptime.org",
-    port="13306",
-    user="root",
-    password="qwer1234!",
-    database="kang"
-)
-
-# 커서 객체 생성
-cursor = conn.cursor()
-
-def makeInsertQuery(table, colList, row):
-  insertQuery = f"insert into {table} ("
-  for col in colList:
-    insertQuery += col + ", "
-
-  insertQuery = insertQuery[: -2] + ") values ("
-  for col in colList:
-    insertQuery += "%s, "
-
-  return insertQuery[: -2] + ")"
-
-def makeRowParam(colList, row):
-  list = []
-  for col in colList:
-    list.append(row[1][col])
-  return list
 
 colList = list(df_result.columns)
 
+dbCon = DBConnector()
+
 for row in df_result.iterrows():
-  cursor.execute(makeInsertQuery("apt_table", colList, row), makeRowParam(colList,row))
+  sql = dbCon.makeInsertQuery("apt_table", colList, row)
+  param = dbCon.makeRowParam(colList, row)
+  dbCon.exec(sql, param)
 
-conn.commit()
-
-# 데이터 조회
-# cursor.execute("SELECT * FROM users")
-# rows = cursor.fetchall()
-# for row in rows:
-#     print(row)
-
-conn.close()
+dbCon.commitAndClose()
